@@ -8,11 +8,14 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+#define BUFFER_SIZE 100
+
 int main() {	
-  int addr_status, sockfd, bind_status, new_fd, msg_len, bytes_sent;
+  int addr_status, sockfd, bind_status, new_fd, msg_len, bytes_sent, bytes_recvd;
 	struct addrinfo hints, *res, *current;
 	struct sockaddr_storage their_addr;
 	char *msg = "Hi I'm a datetime";
+	char incoming_msg[BUFFER_SIZE];
 	socklen_t addr_size;
 
 	// get local addr
@@ -59,17 +62,23 @@ int main() {
 			perror("accept error");
 	    exit(1);
 		}
+		//set socket option for keepalive
 
-		msg_len = strlen(msg);
+		//receive
+		do {
 
-		if((bytes_sent = send(new_fd, msg, msg_len, 0)) == -1) {
-			perror("send error");
-	    exit(1);
-		}
+			if((bytes_recvd = recv(new_fd, incoming_msg, BUFFER_SIZE, 0)) == -1) {
+				perror("receive error");
+		    exit(1);
+			}
+			printf("got some bytes: %d\n", bytes_recvd);
 
-		if(bytes_sent != msg_len) {
-			fprintf(stderr, "failed to send complete message");
-		}
+			if((bytes_sent = send(new_fd, incoming_msg, bytes_recvd, 0)) == -1) {
+				perror("send error");
+		    exit(1);
+			}
+		} while(1);
+
 		close(new_fd);
 	}
 }
